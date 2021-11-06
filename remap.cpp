@@ -377,6 +377,33 @@ int main() {
                 interception_send(context, device, (InterceptionStroke *)&stroke, 1);
               }
               break;
+            case SC_LBRACK:
+            case SC_RBRACK:
+              if (isRShift || isLShift) {
+                if (keystroke.state == 1) {
+                  switch (keystroke.code) {
+                    case SC_LBRACK:
+                      stroke_send(context, device, SC_TAB);
+                      break;
+                    case SC_RBRACK:
+                      if (isRShift) {
+                        send(context, device, SC_RSHIFT, 1);
+                      } else if (isLShift) {
+                        send(context, device, SC_LSHIFT, 1);
+                      }
+                      stroke_send(context, device, SC_TAB);
+                      if (isRShift) {
+                        send(context, device, SC_RSHIFT, 0);
+                      } else if (isLShift) {
+                        send(context, device, SC_LSHIFT, 0);
+                      }
+                      break;
+                  }
+                }
+              } else {
+                interception_send(context, device, (InterceptionStroke *)&stroke, 1);
+              }
+              break;
             default:
               if (keystroke.code == SC_LSHIFT) {
                 isLShift = keystroke.state == 0;

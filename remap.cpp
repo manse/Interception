@@ -274,6 +274,22 @@ int main() {
               send(context, device, SC_LALT, 0);
               interception_send(context, device, (InterceptionStroke *)&stroke, 1);
               break;
+            case SC_H:
+              if (keystroke.state == 1) {
+                send(context, device, SC_LWIN, 2);
+                send(context, device, SC_DOWN_E, 2);
+                send(context, device, SC_DOWN_E, 3);
+                send(context, device, SC_LWIN, 3);
+              }
+              break;
+            case SC_Q:
+              if (keystroke.state == 1) {
+                send(context, device, SC_LALT, 0);
+                send(context, device, SC_F4, 0);
+                send(context, device, SC_F4, 1);
+                send(context, device, SC_LALT, 1);
+              }
+              break;
             case SC_LWIN:
               send(context, device, SC_LALT, keystroke.state % 2);
               break;
@@ -369,14 +385,16 @@ int main() {
               send(context, device, SC_NPDOT, keystroke.state % 2 + 2);
               break;
             case SC_T:
-              send(context, device, SC_LCTRL, 0);
-              send(context, device, SC_LSHIFT, 0);
-              send(context, device, SC_LALT, 0);
-              send(context, device, SC_T, 0);
-              send(context, device, SC_T, 1);
-              send(context, device, SC_LALT, 1);
-              send(context, device, SC_LSHIFT, 1);
-              send(context, device, SC_LCTRL, 1);
+              if (keystroke.state == 1) {
+                send(context, device, SC_LCTRL, 0);
+                send(context, device, SC_LSHIFT, 0);
+                send(context, device, SC_LALT, 0);
+                send(context, device, SC_T, 0);
+                send(context, device, SC_T, 1);
+                send(context, device, SC_LALT, 1);
+                send(context, device, SC_LSHIFT, 1);
+                send(context, device, SC_LCTRL, 1);
+              }
               break;
             case SC_COMMA:
               cout << "PREVTRACK" << endl;

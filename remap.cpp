@@ -247,7 +247,10 @@ int main() {
         case MS_RMETA:
           switch (keystroke.code) {
             case SC_LALT:
-              if (keystroke.state == 3) {
+              if (keystroke.state == 2) {
+                modState = MS_RMETA_ACTIVE;
+                send(context, device, SC_RCTRL, 0);
+              } else if (keystroke.state == 3) {
                 modState = MS_DEFAULT;
                 stroke_send(context, device, SC_F13);
               }
@@ -261,6 +264,12 @@ int main() {
               break;
             default:
               modState = MS_RMETA_ACTIVE;
+              if (keystroke.code == SC_LSHIFT) {
+                isLShift = true;
+              }
+              if (keystroke.code == SC_RSHIFT) {
+                isRShift = true;
+              }
               send(context, device, SC_RCTRL, 0);
               interception_send(context, device, (InterceptionStroke *)&stroke, 1);
           }
@@ -268,7 +277,10 @@ int main() {
         case MS_LMETA:
           switch (keystroke.code) {
             case SC_LALT:
-              if (keystroke.state == 1) {
+              if (keystroke.state == 0) {
+                modState = MS_LMETA_ACTIVE;
+                send(context, device, SC_LCTRL, 0);
+              } else if (keystroke.state == 1) {
                 modState = MS_DEFAULT;
                 stroke_send(context, device, SC_F14);
               }

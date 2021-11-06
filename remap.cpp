@@ -181,6 +181,8 @@ enum ModState {
   MS_CAPSLOCK_AS_CTRL_ACTIVE,
 };
 
+enum Side { S_NONE, S_RIGHT, S_LEFT };
+
 void send(InterceptionContext context, InterceptionDevice device, unsigned short code, unsigned short state) {
   InterceptionKeyStroke stroke;
   stroke.code = code;
@@ -189,9 +191,9 @@ void send(InterceptionContext context, InterceptionDevice device, unsigned short
   interception_send(context, device, (InterceptionStroke *)&stroke, 1);
 }
 
-void stroke_send(InterceptionContext context, InterceptionDevice device, unsigned short code) {
-  send(context, device, code, 0);
-  send(context, device, code, 1);
+void stroke_send(InterceptionContext context, InterceptionDevice device, unsigned short code, char offset = 0) {
+  send(context, device, code, 0 + offset);
+  send(context, device, code, 1 + offset);
 }
 
 int main() {
@@ -211,11 +213,13 @@ int main() {
   interception_set_filter(context, interception_is_mouse, INTERCEPTION_FILTER_MOUSE_LEFT_BUTTON_DOWN);
 
   unsigned char modState = MS_DEFAULT;
+  bool isRShift = false;
+  bool isLShift = false;
 
   while (interception_receive(context, device = interception_wait(context), &stroke, 1) > 0) {
     if (interception_is_keyboard(device)) {
       InterceptionKeyStroke &keystroke = *(InterceptionKeyStroke *)&stroke;
-      cout << keystroke.code << "," << keystroke.state << endl;
+      // cout << keystroke.code << "," << keystroke.state << endl;
       switch (modState) {
         case MS_DEFAULT:
           switch (keystroke.code) {
@@ -275,7 +279,7 @@ int main() {
               interception_send(context, device, (InterceptionStroke *)&stroke, 1);
               break;
             case SC_H:
-              if (keystroke.state == 1) {
+              if (keystroke.state == 0) {
                 send(context, device, SC_LWIN, 2);
                 send(context, device, SC_DOWN_E, 2);
                 send(context, device, SC_DOWN_E, 3);
@@ -283,11 +287,16 @@ int main() {
               }
               break;
             case SC_Q:
-              if (keystroke.state == 1) {
+              if (keystroke.state == 0) {
                 send(context, device, SC_LALT, 0);
                 send(context, device, SC_F4, 0);
                 send(context, device, SC_F4, 1);
                 send(context, device, SC_LALT, 1);
+              }
+              break;
+            case SC_SPACE:
+              if (keystroke.state == 0) {
+                stroke_send(context, device, SC_LWIN, 2);
               }
               break;
             case SC_LWIN:
@@ -299,6 +308,12 @@ int main() {
               break;
             default:
               modState = MS_LMETA_ACTIVE;
+              if (keystroke.code == SC_LSHIFT) {
+                isLShift = true;
+              }
+              if (keystroke.code == SC_RSHIFT) {
+                isRShift = true;
+              }
               send(context, device, SC_LCTRL, 0);
               interception_send(context, device, (InterceptionStroke *)&stroke, 1);
           }
@@ -327,6 +342,7 @@ int main() {
             case SC_LALT:
               if (keystroke.state == 1) {
                 send(context, device, SC_LCTRL, 1);
+                isLShift = isRShift = false;
                 modState = MS_DEFAULT;
               }
               break;
@@ -337,7 +353,37 @@ int main() {
             case SC_APPLICATION:
               send(context, device, SC_LALT, keystroke.state % 2 + 2);
               break;
+            case SC_SPACE:
+              if (isRShift || isLShift) {
+                if (keystroke.state == 1) {
+                  if (isRShift) {
+                    send(context, device, SC_RSHIFT, 1);
+                  } else if (isLShift) {
+                    send(context, device, SC_LSHIFT, 1);
+                  }
+                  send(context, device, SC_LCTRL, 1);
+                  send(context, device, SC_LWIN, 2);
+                  send(context, device, SC_V, 0);
+                  send(context, device, SC_V, 1);
+                  send(context, device, SC_LWIN, 3);
+                  send(context, device, SC_LCTRL, 0);
+                  if (isRShift) {
+                    send(context, device, SC_RSHIFT, 0);
+                  } else if (isLShift) {
+                    send(context, device, SC_LSHIFT, 0);
+                  }
+                }
+              } else {
+                interception_send(context, device, (InterceptionStroke *)&stroke, 1);
+              }
+              break;
             default:
+              if (keystroke.code == SC_LSHIFT) {
+                isLShift = keystroke.state == 0;
+              }
+              if (keystroke.code == SC_RSHIFT) {
+                isRShift = keystroke.state == 0;
+              }
               interception_send(context, device, (InterceptionStroke *)&stroke, 1);
           }
           break;
@@ -385,7 +431,7 @@ int main() {
               send(context, device, SC_NPDOT, keystroke.state % 2 + 2);
               break;
             case SC_T:
-              if (keystroke.state == 1) {
+              if (keystroke.state == 0) {
                 send(context, device, SC_LCTRL, 0);
                 send(context, device, SC_LSHIFT, 0);
                 send(context, device, SC_LALT, 0);
@@ -397,12 +443,13 @@ int main() {
               }
               break;
             case SC_COMMA:
-              cout << "PREVTRACK" << endl;
-              send(context, device, SC_PREVTRACK, keystroke.state % 2);
+              send(context, device, SC_PREVTRACK, keystroke.state % 2 + 2);
               break;
             case SC_DOT:
-              cout << "NEXTTRACK" << endl;
-              send(context, device, SC_NEXTTRACK, keystroke.state % 2);
+              send(context, device, SC_NEXTTRACK, keystroke.state % 2 + 2);
+              break;
+            case SC_SLASH:
+              send(context, device, SC_PLAYPAUSE, keystroke.state % 2 + 2);
               break;
             case SC_LWIN:
               send(context, device, SC_LALT, keystroke.state % 2);
@@ -434,32 +481,6 @@ int main() {
             default:
               interception_send(context, device, (InterceptionStroke *)&stroke, 1);
           }
-          break;
-      }
-      switch (modState) {
-        case MS_DEFAULT:
-          cout << "DEFAULT" << endl;
-          break;
-        case MS_RMETA:
-          cout << "RMETA" << endl;
-          break;
-        case MS_LMETA:
-          cout << "LMETA" << endl;
-          break;
-        case MS_RMETA_ACTIVE:
-          cout << "RMETA_ACTIVE" << endl;
-          break;
-        case MS_LMETA_ACTIVE:
-          cout << "LMETA_ACTIVE" << endl;
-          break;
-        case MS_TASK_SWITCHER:
-          cout << "TASK_SWITCHER" << endl;
-          break;
-        case MS_CAPSLOCK:
-          cout << "CAPSLOCK" << endl;
-          break;
-        case MS_CAPSLOCK_AS_CTRL_ACTIVE:
-          cout << "CAPSLOCK_AS_CTRL_ACTIVE" << endl;
           break;
       }
     } else if (interception_is_mouse(device)) {
